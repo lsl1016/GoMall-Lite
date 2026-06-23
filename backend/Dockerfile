@@ -1,4 +1,7 @@
-FROM golang:1.22-alpine AS builder
+ARG GO_IMAGE=golang:1.23-bookworm
+ARG ALPINE_IMAGE=debian:bookworm-slim
+
+FROM ${GO_IMAGE} AS builder
 
 WORKDIR /app
 RUN apk add --no-cache git ca-certificates tzdata
@@ -7,7 +10,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/gomall-api ./cmd/main.go
 
-FROM alpine:3.20
+FROM ${ALPINE_IMAGE}
 
 WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata

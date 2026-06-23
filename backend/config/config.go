@@ -24,12 +24,12 @@ func Load() Config {
 	}
 
 	return Config{
-		Port:             getEnv("PORT", "8080"),
-		DBHost:           getEnv("DB_HOST", "127.0.0.1"),
-		DBPort:           getEnv("DB_PORT", "3306"),
-		DBUser:           getEnv("DB_USER", "root"),
-		DBPassword:       getEnv("DB_PASSWORD", "123456"),
-		DBName:           getEnv("DB_NAME", "gomall_lite"),
+		Port:             getEnvAny([]string{"PORT", "APP_PORT"}, "8080"),
+		DBHost:           getEnvAny([]string{"DB_HOST", "MYSQL_HOST"}, "127.0.0.1"),
+		DBPort:           getEnvAny([]string{"DB_PORT", "MYSQL_PORT"}, "3306"),
+		DBUser:           getEnvAny([]string{"DB_USER", "MYSQL_USER"}, "gomall"),
+		DBPassword:       getEnvAny([]string{"DB_PASSWORD", "MYSQL_PASSWORD"}, "gomall123"),
+		DBName:           getEnvAny([]string{"DB_NAME", "MYSQL_DATABASE"}, "gomall_lite"),
 		JWTSecret:        getEnv("JWT_SECRET", "gomall-lite-secret"),
 		TokenExpireHours: expireHours,
 	}
@@ -45,4 +45,13 @@ func getEnv(key string, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func getEnvAny(keys []string, fallback string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
+	}
+	return fallback
 }

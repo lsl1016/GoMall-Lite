@@ -1,8 +1,6 @@
-version: "3.9"
-
 services:
   mysql:
-    image: mysql:8.0
+    image: ${MYSQL_IMAGE:-mysql:8.0}
     container_name: gomall-lite-mysql
     restart: unless-stopped
     environment:
@@ -15,24 +13,28 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123456"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123456" ]
       interval: 5s
       timeout: 5s
       retries: 20
 
   backend:
     build:
-      context: ./gomall-lite-api
+      context: ./backend
+      args:
+        GO_IMAGE: ${GO_IMAGE:-golang:1.23-bookworm}
+        ALPINE_IMAGE: ${ALPINE_IMAGE:-debian:bookworm-slim}
     container_name: gomall-lite-api
     restart: unless-stopped
     environment:
-      APP_PORT: "8080"
-      MYSQL_HOST: mysql
-      MYSQL_PORT: "3306"
-      MYSQL_USER: gomall
-      MYSQL_PASSWORD: gomall123
-      MYSQL_DATABASE: gomall_lite
+      PORT: "8080"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: gomall
+      DB_PASSWORD: gomall123
+      DB_NAME: gomall_lite
       JWT_SECRET: gomall-lite-secret
       GIN_MODE: release
     ports:
@@ -43,7 +45,10 @@ services:
 
   frontend:
     build:
-      context: ./gomall-lite-web
+      context: ./frontend
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-alpine}
+        NGINX_IMAGE: ${NGINX_IMAGE:-nginx:1.27-alpine}
     container_name: gomall-lite-web
     restart: unless-stopped
     ports:
