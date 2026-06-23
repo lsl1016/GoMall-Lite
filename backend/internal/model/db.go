@@ -2,14 +2,17 @@ package model
 
 import (
 	"errors"
-	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gomall-lite-api/config"
+	appLogger "gomall-lite-api/internal/logger"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -17,20 +20,24 @@ var DB *gorm.DB
 func InitDB(cfg config.Config) error {
 	var err error
 	for i := 1; i <= 30; i++ {
-		DB, err = gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{})
+		DB, err = gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{
+			Logger: newGormLogger(),
+		})
 		if err == nil {
 			break
 		}
-		log.Printf("waiting for mysql (%d/30): %v", i, err)
+		appLogger.Default().Warn("waiting for mysql", "attempt", i, "max_attempts", 30, "error", err)
 		time.Sleep(2 * time.Second)
 	}
 	if err != nil {
 		return err
 	}
+	appLogger.Default().Info("database connected", "host", cfg.DBHost, "port", cfg.DBPort, "database", cfg.DBName)
 
 	if err := DB.AutoMigrate(&User{}, &Product{}, &CartItem{}, &Address{}, &Order{}, &OrderItem{}); err != nil {
 		return err
 	}
+	appLogger.Default().Info("database migration completed")
 
 	return SeedData()
 }
@@ -78,6 +85,31 @@ func SeedData() error {
 		}
 	}
 
-	fmt.Println("seed data ready")
+	appLogger.Default().Info("seed data ready")
 	return nil
+}
+
+func newGormLogger() gormlogger.Interface {
+	return gormlogger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		gormlogger.Config{
+			SlowThreshold:             200 * time.Millisecond,
+			LogLevel:                  parseGormLogLevel(),
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  false,
+		},
+	)
+}
+
+func parseGormLogLevel() gormlogger.LogLevel {
+	switch strings.ToLower(os.Getenv("GORM_LOG_LEVEL")) {
+	case "info":
+		return gormlogger.Info
+	case "error":
+		return gormlogger.Error
+	case "silent":
+		return gormlogger.Silent
+	default:
+		return gormlogger.Warn
+	}
 }

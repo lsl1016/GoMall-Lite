@@ -12,7 +12,10 @@ import (
 )
 
 func SetupRouter(cfg config.Config) *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
+	r.Use(middleware.RequestID())
+	r.Use(middleware.RequestLogger())
+	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS())
 
 	userSvc := service.NewUserService(cfg)

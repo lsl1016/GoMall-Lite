@@ -1,23 +1,28 @@
 package main
 
 import (
-	"log"
+	"os"
 
 	"gomall-lite-api/config"
+	"gomall-lite-api/internal/logger"
 	"gomall-lite-api/internal/model"
 	"gomall-lite-api/internal/router"
 )
 
 func main() {
+	logger.Init()
 	cfg := config.Load()
 
+	logger.Default().Info("starting gomall-lite api", "port", cfg.Port)
 	if err := model.InitDB(cfg); err != nil {
-		log.Fatalf("init database failed: %v", err)
+		logger.Default().Error("init database failed", "error", err)
+		os.Exit(1)
 	}
 
 	r := router.SetupRouter(cfg)
-	log.Printf("GoMall Lite API running on :%s", cfg.Port)
+	logger.Default().Info("gomall-lite api running", "port", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
-		log.Fatalf("server failed: %v", err)
+		logger.Default().Error("server failed", "error", err)
+		os.Exit(1)
 	}
 }

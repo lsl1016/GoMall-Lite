@@ -19,6 +19,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -37,11 +42,19 @@ services:
       DB_NAME: gomall_lite
       JWT_SECRET: gomall-lite-secret
       GIN_MODE: release
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      GORM_LOG_LEVEL: warn
     ports:
       - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -55,6 +68,11 @@ services:
       - "5173:80"
     depends_on:
       - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   mysql_data:
